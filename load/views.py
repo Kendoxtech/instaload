@@ -5,6 +5,8 @@ import requests
 from bs4 import BeautifulSoup
 from django.shortcuts import render
 from urllib.parse import urlparse
+
+from django.views.decorators.csrf import csrf_exempt
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -58,60 +60,68 @@ def index(request):
 
 
 
-import requests
-
-
-from django.shortcuts import render
-from django.http import JsonResponse
 from urllib.parse import urlparse, urlunparse
+from django.http import JsonResponse
+from django.shortcuts import render
 import requests
 from bs4 import BeautifulSoup
 
+# Function to clean Instagram URL
+def clean_instagram_url(instagram_url):
+    parsed_url = urlparse(instagram_url)
+    # Remove query parameters and fragments (img_index and igsh)
+    clean_url = urlunparse((parsed_url.scheme, parsed_url.netloc, parsed_url.path, "", "", ""))
+    return clean_url
+
+# Main view to download Instagram media
 def instagram_downloader(request):
     if request.method == "POST":
         instagram_url = request.POST.get("instagram_url")
         print(f"Received URL: {instagram_url}")
 
         if not instagram_url:
+            print("Error: No URL provided")
             return JsonResponse({"error": "No URL provided. Please provide a valid Instagram URL."}, status=400)
 
-        # Validate Instagram URL
-        parsed_url = urlparse(instagram_url)
+        # Clean Instagram URL by removing query parameters
+        cleaned_url = clean_instagram_url(instagram_url)
+        print(f"Cleaned URL: {cleaned_url}")
+
+        # Validate Instagram URL format
+        parsed_url = urlparse(cleaned_url)
         if not (parsed_url.scheme and parsed_url.netloc and "instagram.com" in parsed_url.netloc):
+            print(f"Invalid Instagram URL: {cleaned_url}")
             return JsonResponse({"error": "Invalid Instagram URL. Please provide a valid Instagram URL."}, status=400)
 
-        # Rebuild the URL to ensure it’s clean
-        clean_url = urlunparse((parsed_url.scheme, parsed_url.netloc, parsed_url.path, "", "", ""))
-        print(f"Cleaned URL: {clean_url}")
+        media_url = None
 
         try:
-            # Make an HTTP request to the Instagram URL
-            headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-            }
-            response = requests.get(clean_url, headers=headers)
+            # Send a GET request to the cleaned Instagram URL
+            response = requests.get(cleaned_url)
             if response.status_code != 200:
-                return JsonResponse({"error": f"Failed to fetch the page. Status code: {response.status_code}"}, status=500)
+                return JsonResponse({"error": "Failed to fetch Instagram page."}, status=400)
 
-            # Parse the HTML using BeautifulSoup
+            # Parse page source with BeautifulSoup
             soup = BeautifulSoup(response.text, "html.parser")
             print("Page source loaded")
 
-            # Look for the media URL in meta tags
+            # Attempt to fetch media URL from og:video or video tags
             video_tag = soup.find("meta", property="og:video")
             if video_tag:
                 media_url = video_tag["content"]
                 media_type = "video"
                 print(f"Found video URL: {media_url}")
             else:
+                # Check for other media types like images
                 image_tag = soup.find("meta", property="og:image")
                 if image_tag:
                     media_url = image_tag["content"]
                     media_type = "image"
                     print(f"Found image URL: {media_url}")
-                else:
-                    print("Error: No media found on the page.")
-                    return JsonResponse({"error": "Could not fetch media. No media found on the Instagram page."}, status=400)
+
+            if not media_url:
+                print("Error: Could not fetch media. No media found on the Instagram page.")
+                return JsonResponse({"error": "Could not fetch media. Check the URL and try again."}, status=400)
 
             return JsonResponse({"media_type": media_type, "media_url": media_url}, status=200)
 
@@ -119,18 +129,8 @@ def instagram_downloader(request):
             print(f"An unexpected error occurred: {str(e)}")
             return JsonResponse({"error": f"An unexpected error occurred: {str(e)}"}, status=500)
 
-    # If not a POST request, render the downloader template
     print("Rendering downloader template")
     return render(request, "downloader.html")
-
-
-
-
-
-
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-import re
 
 
 @csrf_exempt
