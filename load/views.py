@@ -1,22 +1,12 @@
 from django.shortcuts import render
 
 # Create your views here.
-import requests
-from bs4 import BeautifulSoup
-from django.shortcuts import render
-from urllib.parse import urlparse
+
 
 from django.views.decorators.csrf import csrf_exempt
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
+
 import json
-from webdriver_manager.chrome import ChromeDriverManager
-from bs4 import BeautifulSoup
-from urllib.parse import urlparse
-import time
-from django.http import JsonResponse
-from django.shortcuts import render
+
 
 
 def fetch_instagram_media(request):
@@ -57,23 +47,21 @@ def index(request):
     return render(request, 'downloader.html')
 
 
-
-
-
-from urllib.parse import urlparse, urlunparse
 from django.http import JsonResponse
 from django.shortcuts import render
 import requests
 from bs4 import BeautifulSoup
+import json
+import re
 
-# Function to clean Instagram URL
-def clean_instagram_url(instagram_url):
-    parsed_url = urlparse(instagram_url)
-    # Remove query parameters and fragments (img_index and igsh)
-    clean_url = urlunparse((parsed_url.scheme, parsed_url.netloc, parsed_url.path, "", "", ""))
-    return clean_url
 
-# Main view to download Instagram media
+def extract_media_id(instagram_url):
+    match = re.search(r'/p/([^/]+)', instagram_url)
+    if match:
+        return match.group(1)
+    return None
+
+
 def instagram_downloader(request):
     if request.method == "POST":
         instagram_url = request.POST.get("instagram_url")
@@ -83,47 +71,53 @@ def instagram_downloader(request):
             print("Error: No URL provided")
             return JsonResponse({"error": "No URL provided. Please provide a valid Instagram URL."}, status=400)
 
-        # Clean Instagram URL by removing query parameters
-        cleaned_url = clean_instagram_url(instagram_url)
-        print(f"Cleaned URL: {cleaned_url}")
+        # Extract media ID from the Instagram URL
+        media_id = extract_media_id(instagram_url)
+        print(f"Extracted media ID: {media_id}")
 
-        # Validate Instagram URL format
-        parsed_url = urlparse(cleaned_url)
-        if not (parsed_url.scheme and parsed_url.netloc and "instagram.com" in parsed_url.netloc):
-            print(f"Invalid Instagram URL: {cleaned_url}")
-            return JsonResponse({"error": "Invalid Instagram URL. Please provide a valid Instagram URL."}, status=400)
-
-        media_url = None
+        if not media_id:
+            print(f"Invalid Instagram URL: {instagram_url}")
+            return JsonResponse({"error": "Invalid Instagram URL. Could not extract media ID."}, status=400)
 
         try:
-            # Send a GET request to the cleaned Instagram URL
-            response = requests.get(cleaned_url)
+            # Send a GET request to fetch the page content
+            response = requests.get(instagram_url)
+            print(f"Request status code: {response.status_code}")
             if response.status_code != 200:
                 return JsonResponse({"error": "Failed to fetch Instagram page."}, status=400)
 
-            # Parse page source with BeautifulSoup
+            # Parse the page with BeautifulSoup
             soup = BeautifulSoup(response.text, "html.parser")
             print("Page source loaded")
 
-            # Attempt to fetch media URL from og:video or video tags
-            video_tag = soup.find("meta", property="og:video")
-            if video_tag:
-                media_url = video_tag["content"]
-                media_type = "video"
-                print(f"Found video URL: {media_url}")
-            else:
-                # Check for other media types like images
-                image_tag = soup.find("meta", property="og:image")
-                if image_tag:
-                    media_url = image_tag["content"]
-                    media_type = "image"
-                    print(f"Found image URL: {media_url}")
+            # Find the JSON embedded in the page containing media URLs
+            shared_data = soup.find("script", {"type": "text/javascript"})
+            if shared_data:
+                shared_data = shared_data.string
+                # Look for the JSON that contains media data
+                match = re.search(r'window\._sharedData = ({.*?});</script>', shared_data)
+                if match:
+                    json_data = match.group(1)
+                    data = json.loads(json_data)
+                    print(f"Fetched JSON data: {data}")
 
-            if not media_url:
-                print("Error: Could not fetch media. No media found on the Instagram page.")
-                return JsonResponse({"error": "Could not fetch media. Check the URL and try again."}, status=400)
+                    media_info = data['entry_data']['PostPage'][0]['graphql']['shortcode_media']
+                    if 'image_versions2' in media_info:
+                        media_url = media_info['image_versions2']['candidates'][0]['url']
+                        media_type = 'image'
+                        print(f"Found image URL: {media_url}")
+                    elif 'video_versions' in media_info:
+                        media_url = media_info['video_versions'][0]['url']
+                        media_type = 'video'
+                        print(f"Found video URL: {media_url}")
+                    else:
+                        print("Error: Unsupported media type.")
+                        return JsonResponse({"error": "Unsupported media type."}, status=400)
 
-            return JsonResponse({"media_type": media_type, "media_url": media_url}, status=200)
+                    return JsonResponse({"media_type": media_type, "media_url": media_url}, status=200)
+                else:
+                    print("Error: Could not find media data.")
+                    return JsonResponse({"error": "Could not find media. Check the URL and try again."}, status=400)
 
         except Exception as e:
             print(f"An unexpected error occurred: {str(e)}")
