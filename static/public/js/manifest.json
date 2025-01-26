@@ -1,0 +1,45 @@
+{
+	"short_name": "Snapinsta",
+	"name": "Snapinsta - Instagram Downloader",
+	"icons": [
+  	{
+    	"src": "https://image.winudf.com/v2/image1/aW5zdGFncmFtLmRvd25sb2FkZXIuZG93bmxvYWQudmlkZW9zLnBob3Rvc19pY29uXzE2MjE5NjY3MTlfMDk5/icon.png?w=48&fakeurl=1",
+    	"type": "image/png",
+    	"sizes": "48x48"
+  	},
+  	{
+    	"src": "https://image.winudf.com/v2/image1/aW5zdGFncmFtLmRvd25sb2FkZXIuZG93bmxvYWQudmlkZW9zLnBob3Rvc19pY29uXzE2MjE5NjY3MTlfMDk5/icon.png?w=96&fakeurl=1",
+    	"type": "image/png",
+    	"sizes": "96x96"
+  	},
+  	{
+    	"src": "https://image.winudf.com/v2/image1/aW5zdGFncmFtLmRvd25sb2FkZXIuZG93bmxvYWQudmlkZW9zLnBob3Rvc19pY29uXzE2MjE5NjY3MTlfMDk5/icon.png?w=128&fakeurl=1",
+    	"type": "image/png",
+    	"sizes": "128x128"
+  	},
+  	{
+    	"src": "https://image.winudf.com/v2/image1/aW5zdGFncmFtLmRvd25sb2FkZXIuZG93bmxvYWQudmlkZW9zLnBob3Rvc19pY29uXzE2MjE5NjY3MTlfMDk5/icon.png?w=152&fakeurl=1",
+    	"type": "image/png",
+    	"sizes": "152x152"
+  	},
+  	{
+    	"src": "https://image.winudf.com/v2/image1/aW5zdGFncmFtLmRvd25sb2FkZXIuZG93bmxvYWQudmlkZW9zLnBob3Rvc19pY29uXzE2MjE5NjY3MTlfMDk5/icon.png?w=144&fakeurl=1",
+    	"type": "image/png",
+    	"sizes": "144x144"
+  	},
+  	{
+    	"src": "https://image.winudf.com/v2/image1/aW5zdGFncmFtLmRvd25sb2FkZXIuZG93bmxvYWQudmlkZW9zLnBob3Rvc19pY29uXzE2MjE5NjY3MTlfMDk5/icon.png?w=192&fakeurl=1",
+    	"type": "image/png",
+    	"sizes": "192x192"
+  	},
+  	{
+    	"src": "https://image.winudf.com/v2/image1/aW5zdGFncmFtLmRvd25sb2FkZXIuZG93bmxvYWQudmlkZW9zLnBob3Rvc19pY29uXzE2MjE5NjY3MTlfMDk5/icon.png?w=512&fakeurl=1",
+    	"type": "image/png",
+    	"sizes": "512x512"
+  	}
+	],
+	"background_color": "#ffffff",
+	"theme_color": "#ffffff",
+	"start_url": "./?utm_source=pwa",
+	"display": "standalone"
+}

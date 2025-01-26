@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram Media Downloader</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="description" content="Download Instagram videos, images, reels, and IGTV content easily. Paste the URL and get your media instantly.">
+    <meta name="keywords" content="Instagram downloader, video downloader, image downloader, reels downloader, IGTV downloader">
+    <meta name="author" content="Pumpkin Tools">
+
+
+</head>
+
+<body class="bg-gray-100 text-gray-800">
+    <!-- Header -->
+    <header class="bg-purple-600 text-white p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold">Instagram Media Downloader</h1>
+            <select class="bg-purple-700 text-white px-2 py-1 rounded" id="languageSelector">
+                <option value="en">English</option>
+                <option value="es">Español</option>
+                <option value="fr">Français</option>
+            </select>
+        </div>
+    </header>
+
+    <!-- Main Section -->
+    <main class="container mx-auto mt-8 p-4">
+        <!-- Instructions Section -->
+        <section class="bg-white shadow-md rounded-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">How to Use</h2>
+            <ol class="list-decimal pl-6 space-y-2">
+                <li>Copy the Instagram URL of the video, image, reel, or IGTV content you want to download.</li>
+                <li>Paste the URL into the input field below.</li>
+                <li>Click "Download" to fetch and save the media.</li>
+            </ol>
+            <p class="mt-4 text-sm text-gray-500">For example: <code>https://www.instagram.com/p/xyz123</code></p>
+        </section>
+
+        <!-- URL Input Section -->
+        <section class="bg-white shadow-md rounded-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Download Instagram Media</h2>
+            <form id="downloadForm" method="POST" action="{% url 'instagram_downloader' %}">
+                {% csrf_token %}
+                <div>
+                    <label for="instagram_url" class="block text-sm font-medium">Paste Instagram URL:</label>
+                    <input type="url" id="instagram_url" name="instagram_url" placeholder="https://www.instagram.com/p/xyz123" required
+                        class="w-full mt-2 p-3 border rounded-md focus:ring-2 focus:ring-purple-500 focus:outline-none">
+                </div>
+                <button type="submit"
+                    class="w-full bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 mt-4">
+                    Download
+                </button>
+            </form>
+        </section>
+
+        <!-- Loading Spinner -->
+        <div id="loadingSpinner" class="hidden text-center mb-4">
+            <div class="spinner-border animate-spin border-t-4 border-purple-500 w-8 h-8 mx-auto"></div>
+        </div>
+
+        <!-- Preview Section -->
+        <section id="previewSection" class="hidden bg-white shadow-md rounded-lg p-6">
+            <h2 class="text-xl font-semibold mb-4">Preview</h2>
+            <div id="preview" class="text-center">
+                <!-- Fetched media will be shown here -->
+            </div>
+        </section>
+
+        <!-- FAQs Section -->
+        <section class="bg-white shadow-md rounded-lg p-6">
+            <h2 class="text-xl font-semibold mb-4">Frequently Asked Questions</h2>
+            <details class="mb-4">
+                <summary class="font-semibold">What types of media can I download?</summary>
+                <p class="text-sm mt-2">You can download videos, images, reels, and IGTV content from public Instagram profiles.</p>
+            </details>
+            <details class="mb-4">
+                <summary class="font-semibold">Can I download private media?</summary>
+                <p class="text-sm mt-2">No, this tool only works for public Instagram posts due to privacy restrictions.</p>
+            </details>
+            <details>
+                <summary class="font-semibold">Is this tool free?</summary>
+                <p class="text-sm mt-2">Yes, this tool is completely free to use for downloading Instagram media.</p>
+            </details>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white text-center py-4 mt-8">
+        <p>&copy; 2025 Instagram Downloader. All Rights Reserved.</p>
+        <div class="mt-2">
+            <a href="#" class="text-blue-400 hover:underline">Privacy Policy</a> |
+            <a href="#" class="text-blue-400 hover:underline">Terms of Service</a> |
+            <a href="#" class="text-blue-400 hover:underline">Support</a>
+        </div>
+    </footer>
+
+    <script>
+        const form = document.getElementById('downloadForm');
+        const previewSection = document.getElementById('previewSection');
+        const previewDiv = document.getElementById('preview');
+        const spinner = document.getElementById('loadingSpinner');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const url = document.getElementById('instagram_url').value;
+
+            // Validate Instagram URL format
+            if (!url.includes("instagram.com")) {
+                alert("Please enter a valid Instagram URL.");
+                return;
+            }
+
+            // Show loading spinner
+            spinner.classList.remove('hidden');
+            previewSection.classList.add('hidden');
+            previewDiv.innerHTML = '';
+
+            try {
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+                const response = await fetch("{% url 'instagram_downloader' %}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded",
+                        "X-CSRFToken": csrfToken,
+                    },
+                    body: new URLSearchParams({
+                        instagram_url: url,
+                    }),
+                });
+
+                const data = await response.json();
+                spinner.classList.add('hidden');
+
+                if (data.media_url) {
+                    previewDiv.innerHTML = data.media_type === 'video'
+                        ? `<video controls class="mx-auto max-w-full rounded-md">
+                              <source src="${data.media_url}" type="video/mp4">
+                              Your browser does not support the video tag.
+                          </video>
+                          <a href="${data.media_url}" download class="block mt-4 bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600">Download Video</a>`
+                        : `<img src="${data.media_url}" alt="Instagram Media" class="mx-auto max-w-full rounded-md">
+                          <a href="${data.media_url}" download class="block mt-4 bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600">Download Image</a>`;
+                    previewSection.classList.remove('hidden');
+                } else {
+                    previewDiv.innerHTML = `<p class="text-red-500">${data.error || 'An error occurred. Please try again.'}</p>`;
+                    previewSection.classList.remove('hidden');
+                }
+            } catch (error) {
+                spinner.classList.add('hidden');
+                previewDiv.innerHTML = `<p class="text-red-500">An error occurred while fetching media. Please try again later.</p>`;
+                previewSection.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+
+</html>
